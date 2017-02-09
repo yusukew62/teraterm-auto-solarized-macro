@@ -1,0 +1,134 @@
+; ===================================================================
+; Switch the background color of the Teraterm based on environment
+; ===================================================================
+
+; -------------------------------------------------------------------
+; Auther    :   Yusuke Watanabe
+; Date      :   2017/2/10
+; Version   :   0.0.1
+; License   :   MIT
+; -------------------------------------------------------------------
+
+; define the teraterm init file
+strdim INITLIST 3
+INITLIST[0] = 'prd.ini'
+INITLIST[1] = 'stg.ini'
+INITLIST[2] = 'dev.ini'
+
+; select the connection host
+strdim hostnames 1000
+i = 0
+fileopen fhandle 'hosts.txt' 0
+while 1
+    filereadln fhandle line
+
+    if result=1 then 
+        break
+    endif
+
+    ; split line
+    ;; strsplit <strval> <separator> [<count>]
+    strsplit line ',' 3
+    hostnames[i] = groupmatchstr2
+
+    i = i + 1
+    ; messagebox i 'conter'
+    ;; messagebox <message> <title> [<special>]
+endwhile
+
+; display the connection hosts list
+;; listbox <message> <title> <string array> [<selected>]
+listbox 'Select the connection hostname' 'Login' hostnames
+
+; input the password of the connection host
+inputbox 'Hostname or IP address:' 'Login'
+inputbox 'Password:' 'Login'
+; sendln inputstr
+
+; open the configuration file
+;; fileopen <file handle> <filename> <append flag> [<readonly flag>]
+fileopen fhandle 'hosts.txt' 0
+
+; loop
+;; while <expression>
+;;   ...
+;;   ...
+;; endwhile
+while 1
+
+    ; read line of the configuration file
+    ;; filereadln <file handle> <strvar>
+    ;; return result (1: EOF, 0: Not EOF)
+    filereadln fhandle line
+
+    ; split line
+    ;; strsplit <strval> <separator> [<count>]
+    ; messagebox groupmatchstr1 "groupmatchstr1" ; IP Address
+    ; messagebox groupmatchstr2 "groupmatchstr2" ; Hostname
+    ; messagebox groupmatchstr3 "groupmatchstr3" ; Environment
+    strsplit line ',' 3
+
+    ; check the environment
+    ;; strcompare <string1> <string2>
+    ;; <string1> < <string2> -1
+    ;; <string1> = <string2> 0
+    ;; <string1> > <string2> 1
+    strcompare groupmatchstr3 "prd"
+    if result=0 then
+        ipaddress = groupmatchstr1
+        hostname = groupmatchstr2
+        environment = INITLIST[0]
+        ; messagebox "prd" "prd"
+    endif
+
+    ; check the environment
+    strcompare groupmatchstr3 "stg"
+    if result=0 then
+        ipaddress = groupmatchstr1
+        hostname = groupmatchstr2
+        environment = INITLIST[1]
+        ; messagebox "stg" "stg"
+    endif
+
+    ; check the environment
+    strcompare groupmatchstr3 "dev"
+    if result=0 then
+        ipaddress = groupmatchstr1
+        hostname = groupmatchstr2
+        environment = INITLIST[2]
+        ; messagebox "dev" "dev"
+    endif
+
+    ; check the EOF
+    if result=1 then
+    	break
+    endif
+
+    messagebox line 'hosts.txt'
+endwhile
+
+; fle close
+;; fileclose <file handle>
+fileclose fhandle
+
+; set the information of the connection host
+;; strconcat <strvar> <string>
+COMMAND = ipaddress
+strconcat COMMAND ':22 /ssh /2 /auth=password /user='
+; strconcat COMMAND USERNAME
+strconcat COMMAND "hogehoge"
+strconcat COMMAND ' /passwd='
+; strconcat COMMAND PASSWORD
+strconcat COMMAND "fugafuga"
+strconcat COMMAND ' /F='
+strconcat COMMAND environment
+messagebox ipaddress "ipaddress"
+messagebox hostname "hostname"
+messagebox environment "environment"
+messagebox COMMAND "COMMAND"
+
+; conect to the host
+connect COMMAND
+
+; end of macro
+end
