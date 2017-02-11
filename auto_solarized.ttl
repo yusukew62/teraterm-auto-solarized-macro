@@ -4,7 +4,7 @@
 
 ; -------------------------------------------------------------------
 ; Auther    :   Yusuke Watanabe
-; Date      :   2017/2/10
+; Date      :   2017/2/11
 ; Version   :   0.0.1
 ; License   :   MIT
 ; -------------------------------------------------------------------
@@ -16,20 +16,22 @@ INITLIST[1] = 'stg.ini'
 INITLIST[2] = 'dev.ini'
 
 ; select the connection host
-strdim hostnames 1000
-i = 0
+strdim hostsname 300
+hostsname[0] = "other"
+i = 1
 fileopen fhandle 'hosts.txt' 0
 while 1
     filereadln fhandle line
+    fhandle_result = result
 
-    if result=1 then 
+    if fhandle_result=1 then
         break
     endif
 
     ; split line
     ;; strsplit <strval> <separator> [<count>]
     strsplit line ',' 3
-    hostnames[i] = groupmatchstr2
+    hostsname[i] = groupmatchstr2
 
     i = i + 1
     ; messagebox i 'conter'
@@ -38,97 +40,151 @@ endwhile
 
 ; display the connection hosts list
 ;; listbox <message> <title> <string array> [<selected>]
-listbox 'Select the connection hostname' 'Login' hostnames
+listbox 'Select the connection hostname' 'Login' hostsname
+hostnum = result
+strcompare hostsname[hostnum] "other"
+hostcheck_result = result
 
-; input the password of the connection host
-inputbox 'Hostname or IP address:' 'Login'
-inputbox 'Password:' 'Login'
-; sendln inputstr
-
-; open the configuration file
-;; fileopen <file handle> <filename> <append flag> [<readonly flag>]
-fileopen fhandle 'hosts.txt' 0
-
-; loop
-;; while <expression>
-;;   ...
-;;   ...
-;; endwhile
-while 1
-
-    ; read line of the configuration file
-    ;; filereadln <file handle> <strvar>
-    ;; return result (1: EOF, 0: Not EOF)
-    filereadln fhandle line
-
-    ; split line
-    ;; strsplit <strval> <separator> [<count>]
-    ; messagebox groupmatchstr1 "groupmatchstr1" ; IP Address
-    ; messagebox groupmatchstr2 "groupmatchstr2" ; Hostname
-    ; messagebox groupmatchstr3 "groupmatchstr3" ; Environment
-    strsplit line ',' 3
-
-    ; check the environment
-    ;; strcompare <string1> <string2>
-    ;; <string1> < <string2> -1
-    ;; <string1> = <string2> 0
-    ;; <string1> > <string2> 1
-    strcompare groupmatchstr3 "prd"
-    if result=0 then
-        ipaddress = groupmatchstr1
-        hostname = groupmatchstr2
-        environment = INITLIST[0]
-        ; messagebox "prd" "prd"
-    endif
-
-    ; check the environment
-    strcompare groupmatchstr3 "stg"
-    if result=0 then
-        ipaddress = groupmatchstr1
-        hostname = groupmatchstr2
-        environment = INITLIST[1]
-        ; messagebox "stg" "stg"
-    endif
-
-    ; check the environment
-    strcompare groupmatchstr3 "dev"
-    if result=0 then
-        ipaddress = groupmatchstr1
-        hostname = groupmatchstr2
-        environment = INITLIST[2]
-        ; messagebox "dev" "dev"
-    endif
-
-    ; check the EOF
-    if result=1 then
-    	break
-    endif
-
-    messagebox line 'hosts.txt'
-endwhile
-
-; fle close
-;; fileclose <file handle>
-fileclose fhandle
-
-; set the information of the connection host
-;; strconcat <strvar> <string>
-COMMAND = ipaddress
-strconcat COMMAND ':22 /ssh /2 /auth=password /user='
-; strconcat COMMAND USERNAME
-strconcat COMMAND "hogehoge"
-strconcat COMMAND ' /passwd='
-; strconcat COMMAND PASSWORD
-strconcat COMMAND "fugafuga"
-strconcat COMMAND ' /F='
-strconcat COMMAND environment
-messagebox ipaddress "ipaddress"
-messagebox hostname "hostname"
-messagebox environment "environment"
-messagebox COMMAND "COMMAND"
-
-; conect to the host
-connect COMMAND
+if hostcheck_result=0 then
+    ; manual login
+    call manual_login
+    end
+else
+    ; auto login
+    call auto_login
+    end
+endif
 
 ; end of macro
 end
+
+
+
+; manual login sub routine
+:manual_login
+    exec 'C:\Program Files (x86)\teraterm\ttermpro.exe'
+return
+
+
+; auto login sub routine
+:auto_login
+    ; open the configuration file
+    ;; fileopen <file handle> <filename> <append flag> [<readonly flag>]
+    fileopen fhandle 'hosts.txt' 0
+    
+    ; loop
+    ;; while <expression>
+    ;;   ...
+    ;;   ...
+    ;; endwhile
+    while 1
+    
+        ; read line of the configuration file
+        ;; filereadln <file handle> <strvar>
+        ;; return result (1: EOF, 0: Not EOF)
+        filereadln fhandle line
+        fhandle_result = result
+
+	find_host = hostsname[hostnum]
+        strcompare groupmatchstr2 find_host
+	find_host_result = result
+        if find_host_result=0 then
+            messagebox groupmatchstr1 "find"
+            messagebox groupmatchstr2 "find"
+            messagebox groupmatchstr3 "find"
+        endif
+    
+        ; split line
+        ;; strsplit <strval> <separator> [<count>]
+        ; messagebox groupmatchstr1 "groupmatchstr1" ; IP Address
+        ; messagebox groupmatchstr2 "groupmatchstr2" ; Hostname
+        ; messagebox groupmatchstr3 "groupmatchstr3" ; Environment
+        strsplit line ',' 3
+    
+        ; check the environment
+        ;; strcompare <string1> <string2>
+        ;; <string1> < <string2> -1
+        ;; <string1> = <string2> 0
+        ;; <string1> > <string2> 1
+        strcompare groupmatchstr3 "prd"
+        if fhandle_result=0 then
+            ipaddress = groupmatchstr1
+            hostname = groupmatchstr2
+            environment = INITLIST[0]
+            ; messagebox "prd" "prd"
+        endif
+    
+        ; check the environment
+        strcompare groupmatchstr3 "stg"
+        if fhandle_result=0 then
+            ipaddress = groupmatchstr1
+            hostname = groupmatchstr2
+            environment = INITLIST[1]
+            ; messagebox "stg" "stg"
+        endif
+    
+        ; check the environment
+        strcompare groupmatchstr3 "dev"
+        if fhandle_result=0 then
+            ipaddress = groupmatchstr1
+            hostname = groupmatchstr2
+            environment = INITLIST[2]
+            ; messagebox "dev" "dev"
+        endif
+    
+        ; check the EOF
+        if fhandle_result=1 then
+        	break
+        endif
+    
+        ; messagebox line 'hosts.txt'
+    endwhile
+    
+    ; fle close
+    ;; fileclose <file handle>
+    fileclose fhandle
+    
+    ; set the information of the connection host
+    ;; strconcat <strvar> <string>
+    
+    
+    ; TTERMPRO [ <host>[[:]<TCP port#>] | telnet://<host>[:<TCP port#>][/] ]
+    ;          [/B] [/BAUD=<baud rate>] [/C=<serial port#>] [/DS] [/E] [/ES]
+    ;          [/F=<setup file>] [/FD=<file transfer directory>]
+    ;          [/H] [/I] [/K=<keyboard setup file>]
+    ;          [/KR=<kanji code (receive)>] [/KT=<kanji code (transmit)>]
+    ;          [/L=<log file>] [/LA=<language>] [/M=<macro file>] [/NOLOG]
+    ;          [/P=<TCP port#>] [/R=<replay file>] [/T=<telnet flag>]
+    ;          [/TEKICON=<icon name>] [/TIMEOUT=<connecting timeout value>]
+    ;          [/V] [/VTICON=<icon name>] [/W="<window title>"] [/WAITCOM]
+    ;          [/X=<window pos (x)] [/Y=<window pos (y)]
+    ;          [/NAMEDPIPE]
+    ;          [/AUTOWINCLOSE=<flag>]
+    ;          [;<comment>]
+    
+    ;; <host>:<TCP port#>
+    ; hostname
+    COMMAND = ipaddress
+    ; ssh connection port
+    strconcat COMMAND ':22'
+    ; ssh version
+    strconcat COMMAND ' /ssh /2'
+    ; ssh authentication method
+    strconcat COMMAND ' /auth=password'
+    ; username
+    strconcat COMMAND ' /user='
+    strconcat COMMAND "root"
+    ; password
+    strconcat COMMAND ' /passwd='
+    strconcat COMMAND "adminadmin"
+    ; reading config file
+    ;; /F=<setup file>
+    strconcat COMMAND ' /F='
+    strconcat COMMAND environment
+    ;; /L=<log file>
+    strconcat COMMAND ' /L='
+    strconcat COMMAND 'C:\Users\Yusuke\Desktop\test.log'
+    ; conect to the host
+    connect COMMAND
+    
+return
