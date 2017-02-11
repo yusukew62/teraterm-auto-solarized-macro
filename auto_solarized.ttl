@@ -5,21 +5,30 @@
 ; -------------------------------------------------------------------
 ; Auther    :   Yusuke Watanabe
 ; Date      :   2017/2/11
-; Version   :   0.0.1
+; Version   :   0.1.0
 ; License   :   MIT
 ; -------------------------------------------------------------------
 
 ; define the teraterm init file
 strdim INITLIST 3
+strdim ENVLIST 3
+
+; initialize variables
 INITLIST[0] = 'prd.ini'
 INITLIST[1] = 'stg.ini'
 INITLIST[2] = 'dev.ini'
+HOSTS_FILE = 'hosts.txt'
+ENVLIST[0] = 'prd'
+ENVLIST[1] = 'stg'
+ENVLIST[2] = 'dev'
+TTERMPRO_PATH = 'C:\Program Files (x86)\teraterm\ttermpro.exe'
+TTERMLOG_PATH = 'C:\Users\Yusuke\Desktop\test.log'
 
 ; select the connection host
 strdim hostsname 300
 hostsname[0] = "other"
 i = 1
-fileopen fhandle 'hosts.txt' 0
+fileopen fhandle HOSTS_FILE 0
 while 1
     filereadln fhandle line
     fhandle_result = result
@@ -37,6 +46,11 @@ while 1
     ; messagebox i 'conter'
     ;; messagebox <message> <title> [<special>]
 endwhile
+
+; fle close
+;; fileclose <file handle>
+fileclose fhandle
+
 
 ; display the connection hosts list
 ;; listbox <message> <title> <string array> [<selected>]
@@ -62,7 +76,7 @@ end
 
 ; manual login sub routine
 :manual_login
-    exec 'C:\Program Files (x86)\teraterm\ttermpro.exe'
+    exec TTERMPRO_PATH
 return
 
 
@@ -70,7 +84,7 @@ return
 :auto_login
     ; open the configuration file
     ;; fileopen <file handle> <filename> <append flag> [<readonly flag>]
-    fileopen fhandle 'hosts.txt' 0
+    fileopen fhandle HOSTS_FILE 0
     
     ; loop
     ;; while <expression>
@@ -85,51 +99,91 @@ return
         filereadln fhandle line
         fhandle_result = result
 
-	find_host = hostsname[hostnum]
-        strcompare groupmatchstr2 find_host
-	find_host_result = result
-        if find_host_result=0 then
-            messagebox groupmatchstr1 "find"
-            messagebox groupmatchstr2 "find"
-            messagebox groupmatchstr3 "find"
-        endif
-    
         ; split line
         ;; strsplit <strval> <separator> [<count>]
         ; messagebox groupmatchstr1 "groupmatchstr1" ; IP Address
         ; messagebox groupmatchstr2 "groupmatchstr2" ; Hostname
         ; messagebox groupmatchstr3 "groupmatchstr3" ; Environment
         strsplit line ',' 3
+
+	find_host = hostsname[hostnum]
+        strcompare groupmatchstr2 find_host
+	find_host_result = result
+
+        if find_host_result=0 then
+
+            ; check the environment
+            ;; strcompare <string1> <string2>
+            ;; <string1> < <string2> -1
+            ;; <string1> = <string2> 0
+            ;; <string1> > <string2> 1
+            strcompare groupmatchstr3 ENVLIST[0]
+            if fhandle_result=0 then
+                ipaddress = groupmatchstr1
+                hostname = groupmatchstr2
+                environment = INITLIST[0]
+            endif
+        
+            ; check the environment
+            strcompare groupmatchstr3 ENVLIST[1]
+            if fhandle_result=0 then
+                ipaddress = groupmatchstr1
+                hostname = groupmatchstr2
+                environment = INITLIST[1]
+            endif
+        
+            ; check the environment
+            strcompare groupmatchstr3 ENVLIST[2]
+            if fhandle_result=0 then
+                ipaddress = groupmatchstr1
+                hostname = groupmatchstr2
+                environment = INITLIST[2]
+            endif
+
+            ; set the information of the connection host
+            ;; strconcat <strvar> <string>
+            
+            
+            ; TTERMPRO [ <host>[[:]<TCP port#>] | telnet://<host>[:<TCP port#>][/] ]
+            ;          [/B] [/BAUD=<baud rate>] [/C=<serial port#>] [/DS] [/E] [/ES]
+            ;          [/F=<setup file>] [/FD=<file transfer directory>]
+            ;          [/H] [/I] [/K=<keyboard setup file>]
+            ;          [/KR=<kanji code (receive)>] [/KT=<kanji code (transmit)>]
+            ;          [/L=<log file>] [/LA=<language>] [/M=<macro file>] [/NOLOG]
+            ;          [/P=<TCP port#>] [/R=<replay file>] [/T=<telnet flag>]
+            ;          [/TEKICON=<icon name>] [/TIMEOUT=<connecting timeout value>]
+            ;          [/V] [/VTICON=<icon name>] [/W="<window title>"] [/WAITCOM]
+            ;          [/X=<window pos (x)] [/Y=<window pos (y)]
+            ;          [/NAMEDPIPE]
+            ;          [/AUTOWINCLOSE=<flag>]
+            ;          [;<comment>]
+            
+            ;; <host>:<TCP port#>
+            ; hostname
+            COMMAND = ipaddress
+            ; ssh connection port
+            strconcat COMMAND ':22'
+            ; ssh version
+            strconcat COMMAND ' /ssh /2'
+            ; ssh authentication method
+            strconcat COMMAND ' /auth=password'
+            ; username
+            strconcat COMMAND ' /user='
+            strconcat COMMAND "root"
+            ; password
+            strconcat COMMAND ' /passwd='
+            strconcat COMMAND "adminadmin"
+            ; reading config file
+            ;; /F=<setup file>
+            strconcat COMMAND ' /F='
+            strconcat COMMAND environment
+            ;; /L=<log file>
+            strconcat COMMAND ' /L='
+            strconcat COMMAND TTERMLOG_PATH
+            ; conect to the host
+            connect COMMAND
     
-        ; check the environment
-        ;; strcompare <string1> <string2>
-        ;; <string1> < <string2> -1
-        ;; <string1> = <string2> 0
-        ;; <string1> > <string2> 1
-        strcompare groupmatchstr3 "prd"
-        if fhandle_result=0 then
-            ipaddress = groupmatchstr1
-            hostname = groupmatchstr2
-            environment = INITLIST[0]
-            ; messagebox "prd" "prd"
-        endif
-    
-        ; check the environment
-        strcompare groupmatchstr3 "stg"
-        if fhandle_result=0 then
-            ipaddress = groupmatchstr1
-            hostname = groupmatchstr2
-            environment = INITLIST[1]
-            ; messagebox "stg" "stg"
-        endif
-    
-        ; check the environment
-        strcompare groupmatchstr3 "dev"
-        if fhandle_result=0 then
-            ipaddress = groupmatchstr1
-            hostname = groupmatchstr2
-            environment = INITLIST[2]
-            ; messagebox "dev" "dev"
+	    end
         endif
     
         ; check the EOF
@@ -137,7 +191,7 @@ return
         	break
         endif
     
-        ; messagebox line 'hosts.txt'
+        ; messagebox line HOSTS_FILE
     endwhile
     
     ; fle close
@@ -146,45 +200,5 @@ return
     
     ; set the information of the connection host
     ;; strconcat <strvar> <string>
-    
-    
-    ; TTERMPRO [ <host>[[:]<TCP port#>] | telnet://<host>[:<TCP port#>][/] ]
-    ;          [/B] [/BAUD=<baud rate>] [/C=<serial port#>] [/DS] [/E] [/ES]
-    ;          [/F=<setup file>] [/FD=<file transfer directory>]
-    ;          [/H] [/I] [/K=<keyboard setup file>]
-    ;          [/KR=<kanji code (receive)>] [/KT=<kanji code (transmit)>]
-    ;          [/L=<log file>] [/LA=<language>] [/M=<macro file>] [/NOLOG]
-    ;          [/P=<TCP port#>] [/R=<replay file>] [/T=<telnet flag>]
-    ;          [/TEKICON=<icon name>] [/TIMEOUT=<connecting timeout value>]
-    ;          [/V] [/VTICON=<icon name>] [/W="<window title>"] [/WAITCOM]
-    ;          [/X=<window pos (x)] [/Y=<window pos (y)]
-    ;          [/NAMEDPIPE]
-    ;          [/AUTOWINCLOSE=<flag>]
-    ;          [;<comment>]
-    
-    ;; <host>:<TCP port#>
-    ; hostname
-    COMMAND = ipaddress
-    ; ssh connection port
-    strconcat COMMAND ':22'
-    ; ssh version
-    strconcat COMMAND ' /ssh /2'
-    ; ssh authentication method
-    strconcat COMMAND ' /auth=password'
-    ; username
-    strconcat COMMAND ' /user='
-    strconcat COMMAND "root"
-    ; password
-    strconcat COMMAND ' /passwd='
-    strconcat COMMAND "adminadmin"
-    ; reading config file
-    ;; /F=<setup file>
-    strconcat COMMAND ' /F='
-    strconcat COMMAND environment
-    ;; /L=<log file>
-    strconcat COMMAND ' /L='
-    strconcat COMMAND 'C:\Users\Yusuke\Desktop\test.log'
-    ; conect to the host
-    connect COMMAND
     
 return
