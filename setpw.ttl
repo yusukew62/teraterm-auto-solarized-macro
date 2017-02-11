@@ -1,0 +1,100 @@
+; ===================================================================
+; Encrypt the server login password and save it in the password file
+; ===================================================================
+
+; -------------------------------------------------------------------
+; Auther    :   Yusuke Watanabe
+; Date      :   2017/2/11
+; Version   :   0.1.0
+; License   :   MIT
+; -------------------------------------------------------------------
+
+
+; ===================================================================
+; Setting username and password
+; ===================================================================
+; setting the password
+;; setpassword <filename> <password name> <strvar>
+
+; pwfile
+PW_FILE = 'password.txt'
+
+; define the user and password list
+DATA_NUM = 3
+strdim USER_LIST DATA_NUM
+strdim PW_LIST   DATA_NUM
+
+; 0: General user
+USER_LIST[0] = 'permit'
+PW_LIST[0] = 'permit'
+
+; 1: Common user
+USER_LIST[1] = 'permit'
+PW_LIST[1] = 'password'
+
+; 2: Administrator user
+USER_LIST[2] = 'root'
+PW_LIST[2] = 'adminadmin'
+
+
+; ===================================================================
+; Main
+; ===================================================================
+; delete an existing password file
+filedelete PW_FILE
+
+i = 0
+while 1
+
+    ; check if the user exists
+    ;; ispassword <filename> <password name>
+    ispassword PW_FILE USER_LIST[i] ; result: 0=false; 1=true
+    pw_result = result
+
+    if pw_result = 1 then
+
+        ; exist user
+	; check the exsisting user
+	j = 0
+	while 1
+            CHK_USER = USER_LIST[i]   ; permit
+            strconcat CHK_USER '.'    ; permit.
+	    int2str num j
+            strconcat CHK_USER num    ; permit.1
+
+            ; check the number user
+            ispassword PW_FILE CHK_USER
+	    user_result = result
+
+	    if user_result = 1 then
+                ; nothing
+            else
+                ; regist user
+		setpassword PW_FILE CHK_USER PW_LIST[i]
+		break
+            endif
+
+            ; increments of counter variable
+            j = j + 1
+
+        endwhile
+
+    else
+
+        ; not exist user
+        ; register
+        setpassword PW_FILE USER_LIST[i] PW_LIST[i]
+
+    endif
+
+
+    ; EOF
+    if i=(DATA_NUM-1) then
+        break
+    endif
+
+    ; increments of counter variable
+    i = i + 1
+
+endwhile
+
