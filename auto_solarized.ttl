@@ -5,25 +5,38 @@
 ; -------------------------------------------------------------------
 ; Auther    :   Yusuke Watanabe
 ; Date      :   2017/2/11
-; Version   :   0.1.0
+; Version   :   0.1.1
 ; License   :   MIT
 ; -------------------------------------------------------------------
 
-; define the teraterm init file
+
+; ===================================================================
+; Configuration
+; ===================================================================
+; define the teraterm init files
 strdim INITLIST 3
+INITLIST[0] = 'prd.ini'    ; production
+INITLIST[1] = 'stg.ini'    ; staging
+INITLIST[2] = 'dev.ini'    ; development
+
+; define the environment identifiers
 strdim ENVLIST 3
+ENVLIST[0] = 'prd'         ; production
+ENVLIST[1] = 'stg'         ; staging
+ENVLIST[2] = 'dev'         ; development
 
-; initialize variables
-INITLIST[0] = 'prd.ini'
-INITLIST[1] = 'stg.ini'
-INITLIST[2] = 'dev.ini'
+; define the hosts file name
 HOSTS_FILE = 'hosts.txt'
-ENVLIST[0] = 'prd'
-ENVLIST[1] = 'stg'
-ENVLIST[2] = 'dev'
-TTERMPRO_PATH = 'C:\Program Files (x86)\teraterm\ttermpro.exe'
-TTERMLOG_PATH = 'C:\Users\Yusuke\Desktop\test.log'
 
+; define the path
+TTERMPRO_PATH = 'C:\Program Files (x86)\teraterm\ttermpro.exe'
+TTERMLOG_PATH = 'C:\Users\Yusuke\Desktop\'
+TTERMLOG_FILE = 'test.log'
+
+
+; ===================================================================
+; Main
+; ===================================================================
 ; select the connection host
 strdim hostsname 300
 hostsname[0] = "other"
@@ -73,7 +86,9 @@ endif
 end
 
 
-
+; ===================================================================
+; Sub routines
+; ===================================================================
 ; manual login sub routine
 :manual_login
     exec TTERMPRO_PATH
@@ -118,7 +133,8 @@ return
             ;; <string1> = <string2> 0
             ;; <string1> > <string2> 1
             strcompare groupmatchstr3 ENVLIST[0]
-            if fhandle_result=0 then
+	    env_check_result = result
+            if env_check_result=0 then
                 ipaddress = groupmatchstr1
                 hostname = groupmatchstr2
                 environment = INITLIST[0]
@@ -126,7 +142,8 @@ return
         
             ; check the environment
             strcompare groupmatchstr3 ENVLIST[1]
-            if fhandle_result=0 then
+	    env_check_result = result
+            if env_check_result=0 then
                 ipaddress = groupmatchstr1
                 hostname = groupmatchstr2
                 environment = INITLIST[1]
@@ -134,55 +151,18 @@ return
         
             ; check the environment
             strcompare groupmatchstr3 ENVLIST[2]
-            if fhandle_result=0 then
+	    env_check_result = result
+            if env_check_result=0 then
                 ipaddress = groupmatchstr1
                 hostname = groupmatchstr2
                 environment = INITLIST[2]
             endif
 
-            ; set the information of the connection host
-            ;; strconcat <strvar> <string>
-            
-            
-            ; TTERMPRO [ <host>[[:]<TCP port#>] | telnet://<host>[:<TCP port#>][/] ]
-            ;          [/B] [/BAUD=<baud rate>] [/C=<serial port#>] [/DS] [/E] [/ES]
-            ;          [/F=<setup file>] [/FD=<file transfer directory>]
-            ;          [/H] [/I] [/K=<keyboard setup file>]
-            ;          [/KR=<kanji code (receive)>] [/KT=<kanji code (transmit)>]
-            ;          [/L=<log file>] [/LA=<language>] [/M=<macro file>] [/NOLOG]
-            ;          [/P=<TCP port#>] [/R=<replay file>] [/T=<telnet flag>]
-            ;          [/TEKICON=<icon name>] [/TIMEOUT=<connecting timeout value>]
-            ;          [/V] [/VTICON=<icon name>] [/W="<window title>"] [/WAITCOM]
-            ;          [/X=<window pos (x)] [/Y=<window pos (y)]
-            ;          [/NAMEDPIPE]
-            ;          [/AUTOWINCLOSE=<flag>]
-            ;          [;<comment>]
-            
-            ;; <host>:<TCP port#>
-            ; hostname
-            COMMAND = ipaddress
-            ; ssh connection port
-            strconcat COMMAND ':22'
-            ; ssh version
-            strconcat COMMAND ' /ssh /2'
-            ; ssh authentication method
-            strconcat COMMAND ' /auth=password'
-            ; username
-            strconcat COMMAND ' /user='
-            strconcat COMMAND "root"
-            ; password
-            strconcat COMMAND ' /passwd='
-            strconcat COMMAND "adminadmin"
-            ; reading config file
-            ;; /F=<setup file>
-            strconcat COMMAND ' /F='
-            strconcat COMMAND environment
-            ;; /L=<log file>
-            strconcat COMMAND ' /L='
-            strconcat COMMAND TTERMLOG_PATH
-            ; conect to the host
-            connect COMMAND
+            ; exec teraterm
+            call exec_teraterm
+            end
     
+	    ; exit this macro
 	    end
         endif
     
@@ -198,7 +178,63 @@ return
     ;; fileclose <file handle>
     fileclose fhandle
     
+return
+
+
+; exec teraterm sub routine
+:exec_teraterm
+    ; TTERMPRO [ <host>[[:]<TCP port#>] | telnet://<host>[:<TCP port#>][/] ]
+    ;          [/B] [/BAUD=<baud rate>] [/C=<serial port#>] [/DS] [/E] [/ES]
+    ;          [/F=<setup file>] [/FD=<file transfer directory>]
+    ;          [/H] [/I] [/K=<keyboard setup file>]
+    ;          [/KR=<kanji code (receive)>] [/KT=<kanji code (transmit)>]
+    ;          [/L=<log file>] [/LA=<language>] [/M=<macro file>] [/NOLOG]
+    ;          [/P=<TCP port#>] [/R=<replay file>] [/T=<telnet flag>]
+    ;          [/TEKICON=<icon name>] [/TIMEOUT=<connecting timeout value>]
+    ;          [/V] [/VTICON=<icon name>] [/W="<window title>"] [/WAITCOM]
+    ;          [/X=<window pos (x)] [/Y=<window pos (y)]
+    ;          [/NAMEDPIPE]
+    ;          [/AUTOWINCLOSE=<flag>]
+    ;          [;<comment>]
+    
     ; set the information of the connection host
     ;; strconcat <strvar> <string>
+
+    strsplit TTERMLOG_FILE '.' 2
+    logfile_name = groupmatchstr1
+    logfile_extension = groupmatchstr2
+    getdate date "%Y%m%d"
     
+    ;; <host>:<TCP port#>
+    ; hostname
+    COMMAND = ipaddress
+    ; ssh connection port
+    strconcat COMMAND ':22'
+    ; ssh version
+    strconcat COMMAND ' /ssh /2'
+    ; ssh authentication method
+    strconcat COMMAND ' /auth=password'
+    ; username
+    strconcat COMMAND ' /user='
+    strconcat COMMAND "root"
+    ; password
+    strconcat COMMAND ' /passwd='
+    strconcat COMMAND "adminadmin"
+    ; reading config file
+    ;; /F=<setup file>
+    strconcat COMMAND ' /F='
+    strconcat COMMAND environment
+    ;; /L=<log file>
+    strconcat COMMAND ' /L='
+    strconcat COMMAND TTERMLOG_PATH
+    strconcat COMMAND logfile_name
+    strconcat COMMAND '_'
+    strconcat COMMAND hostname
+    strconcat COMMAND '_'
+    strconcat COMMAND date
+    strconcat COMMAND '.'
+    strconcat COMMAND logfile_extension
+    ; conect to the host
+    connect COMMAND
 return
+
