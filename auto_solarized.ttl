@@ -4,8 +4,8 @@
 
 ; -------------------------------------------------------------------
 ; Auther    :   Yusuke Watanabe
-; Date      :   2017/2/11
-; Version   :   0.1.1
+; Date      :   2017/2/12
+; Version   :   0.1.0
 ; License   :   MIT
 ; -------------------------------------------------------------------
 
@@ -28,10 +28,14 @@ ENVLIST[2] = 'dev'         ; development
 ; define the hosts file name
 HOSTS_FILE = 'hosts.txt'
 
+; define the password
+PW_FILE = 'password.txt'
+
 ; define the path
 TTERMPRO_PATH = 'C:\Program Files (x86)\teraterm\ttermpro.exe'
 TTERMLOG_PATH = 'C:\Users\Yusuke\Desktop\'
 TTERMLOG_FILE = 'test.log'
+PASSWORD_FILE = 'password.txt'
 
 
 ; ===================================================================
@@ -107,7 +111,6 @@ return
     ;;   ...
     ;; endwhile
     while 1
-    
         ; read line of the configuration file
         ;; filereadln <file handle> <strvar>
         ;; return result (1: EOF, 0: Not EOF)
@@ -119,44 +122,50 @@ return
         ; messagebox groupmatchstr1 "groupmatchstr1" ; IP Address
         ; messagebox groupmatchstr2 "groupmatchstr2" ; Hostname
         ; messagebox groupmatchstr3 "groupmatchstr3" ; Environment
-        strsplit line ',' 3
+        ; messagebox groupmatchstr4 "groupmatchstr4" ; Password
+        strsplit line ',' 4
 
 	find_host = hostsname[hostnum]
         strcompare groupmatchstr2 find_host
 	find_host_result = result
 
         if find_host_result=0 then
-
-            ; check the environment
             ;; strcompare <string1> <string2>
             ;; <string1> < <string2> -1
             ;; <string1> = <string2> 0
             ;; <string1> > <string2> 1
+            ; check the environment
             strcompare groupmatchstr3 ENVLIST[0]
 	    env_check_result = result
+
             if env_check_result=0 then
-                ipaddress = groupmatchstr1
-                hostname = groupmatchstr2
                 environment = INITLIST[0]
             endif
         
             ; check the environment
             strcompare groupmatchstr3 ENVLIST[1]
 	    env_check_result = result
+
             if env_check_result=0 then
-                ipaddress = groupmatchstr1
-                hostname = groupmatchstr2
                 environment = INITLIST[1]
             endif
         
             ; check the environment
             strcompare groupmatchstr3 ENVLIST[2]
 	    env_check_result = result
+
             if env_check_result=0 then
-                ipaddress = groupmatchstr1
-                hostname = groupmatchstr2
                 environment = INITLIST[2]
             endif
+
+	    ; result parameter
+            ipaddress = groupmatchstr1
+            hostname = groupmatchstr2
+	    uniq_user = groupmatchstr4 
+
+	    getpassword PW_FILE uniq_user password
+            strsplit uniq_user '.' 2
+            username = groupmatchstr1
 
             ; exec teraterm
             call exec_teraterm
@@ -200,6 +209,7 @@ return
     ; set the information of the connection host
     ;; strconcat <strvar> <string>
 
+    ; create logfile name
     strsplit TTERMLOG_FILE '.' 2
     logfile_name = groupmatchstr1
     logfile_extension = groupmatchstr2
@@ -216,10 +226,10 @@ return
     strconcat COMMAND ' /auth=password'
     ; username
     strconcat COMMAND ' /user='
-    strconcat COMMAND "root"
+    strconcat COMMAND username
     ; password
     strconcat COMMAND ' /passwd='
-    strconcat COMMAND "adminadmin"
+    strconcat COMMAND password
     ; reading config file
     ;; /F=<setup file>
     strconcat COMMAND ' /F='

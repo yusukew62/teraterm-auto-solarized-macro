@@ -4,7 +4,7 @@
 
 ; -------------------------------------------------------------------
 ; Auther    :   Yusuke Watanabe
-; Date      :   2017/2/11
+; Date      :   2017/2/12
 ; Version   :   0.1.0
 ; License   :   MIT
 ; -------------------------------------------------------------------
@@ -24,15 +24,18 @@ DATA_NUM = 3
 strdim USER_LIST DATA_NUM
 strdim PW_LIST   DATA_NUM
 
-; 0: General user
+; General user
+; permit.0
 USER_LIST[0] = 'permit'
 PW_LIST[0] = 'permit'
 
-; 1: Common user
+; Common user
+; permit.1
 USER_LIST[1] = 'permit'
 PW_LIST[1] = 'password'
 
-; 2: Administrator user
+; Administrator user
+; root.0
 USER_LIST[2] = 'root'
 PW_LIST[2] = 'adminadmin'
 
@@ -43,16 +46,20 @@ PW_LIST[2] = 'adminadmin'
 ; delete an existing password file
 filedelete PW_FILE
 
-i = 0
-while 1
+i = 0    ; register list number
+j = 0    ; existing check number
 
+while 1
     ; check if the user exists
     ;; ispassword <filename> <password name>
-    ispassword PW_FILE USER_LIST[i] ; result: 0=false; 1=true
+    CHK_USER = USER_LIST[i]   ; permit
+    strconcat CHK_USER '.'    ; permit.
+    int2str num j
+    strconcat CHK_USER num    ; permit.1
+    ispassword PW_FILE CHK_USER ; result: 0=false; 1=true
     pw_result = result
 
     if pw_result = 1 then
-
         ; exist user
 	; check the exsisting user
 	j = 0
@@ -76,17 +83,13 @@ while 1
 
             ; increments of counter variable
             j = j + 1
-
         endwhile
-
+	j = 0
     else
-
         ; not exist user
         ; register
-        setpassword PW_FILE USER_LIST[i] PW_LIST[i]
-
+        setpassword PW_FILE CHK_USER PW_LIST[i]
     endif
-
 
     ; EOF
     if i=(DATA_NUM-1) then
@@ -95,6 +98,5 @@ while 1
 
     ; increments of counter variable
     i = i + 1
-
 endwhile
 
